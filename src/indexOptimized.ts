@@ -4,7 +4,7 @@ import {
     Context,
 } from 'aws-lambda';
 import { modifyTextFile } from './fileOperations';
-import { performGitWorkflow } from './gitNative';
+import { createCommitViaAPI } from './githubApi';
 import { getCachedGitConfig } from './secretsCache';
 import { validateLambdaEvent, checkRateLimit } from './validation';
 import {
@@ -189,10 +189,12 @@ export const handler = async (
             commitMessage: lambdaEvent.commitMessage,
         });
 
-        await performGitWorkflow(
+        // Create commit via GitHub API instead of Git commands
+        await createCommitViaAPI(
+            gitConfig,
             lambdaEvent.filePath!,
-            lambdaEvent.commitMessage!,
-            gitConfig
+            lambdaEvent.newContent!,
+            lambdaEvent.commitMessage!
         );
 
         timer.checkpoint('git-operations');
