@@ -48,7 +48,7 @@ describe('Git Native Module', () => {
             const result = await executeGitCommand('git status');
 
             expect(mockExec).toHaveBeenCalledWith('git status', {
-                cwd: process.cwd(),
+                cwd: '/tmp',
                 timeout: expect.any(Number),
                 maxBuffer: 1024 * 1024,
             });
@@ -142,14 +142,15 @@ describe('Git Native Module', () => {
 
     describe('initializeRepository', () => {
         it('should initialize new repository when none exists', async () => {
-            // Mock the sequence: git rev-parse fails, git init succeeds,
-            // git remote add succeeds, git remote get-url fails, git remote add succeeds again
+            // Mock the sequence: git rev-parse fails, git clone succeeds,
+            // git remote get-url succeeds
             mockExec
                 .mockRejectedValueOnce(new Error('Not a git repository'))
                 .mockResolvedValueOnce({ stdout: '', stderr: '' })
-                .mockResolvedValueOnce({ stdout: '', stderr: '' })
-                .mockRejectedValueOnce(new Error('No such remote'))
-                .mockResolvedValueOnce({ stdout: '', stderr: '' });
+                .mockResolvedValueOnce({
+                    stdout: 'https://github.com/test/repo.git',
+                    stderr: '',
+                });
 
             await initializeRepository('https://github.com/test/repo.git');
 
@@ -158,19 +159,20 @@ describe('Git Native Module', () => {
                 expect.any(Object)
             );
             expect(mockExec).toHaveBeenCalledWith(
-                'git init',
+                'git clone "https://github.com/test/repo.git" .',
                 expect.any(Object)
             );
             expect(mockExec).toHaveBeenCalledWith(
-                'git remote add origin "https://github.com/test/repo.git"',
+                'git remote get-url origin',
                 expect.any(Object)
             );
         });
 
         it('should add remote when repository exists but no remote', async () => {
-            // First call succeeds (git repo exists), second fails (no remote), third succeeds (add remote)
+            // First call succeeds (git repo exists), git pull succeeds, second fails (no remote), third succeeds (add remote)
             mockExec
                 .mockResolvedValueOnce({ stdout: '.git', stderr: '' })
+                .mockResolvedValueOnce({ stdout: '', stderr: '' })
                 .mockRejectedValueOnce(new Error('No remote'))
                 .mockResolvedValueOnce({ stdout: '', stderr: '' });
 
@@ -178,6 +180,10 @@ describe('Git Native Module', () => {
 
             expect(mockExec).toHaveBeenCalledWith(
                 'git rev-parse --git-dir',
+                expect.any(Object)
+            );
+            expect(mockExec).toHaveBeenCalledWith(
+                'git pull origin',
                 expect.any(Object)
             );
             expect(mockExec).toHaveBeenCalledWith(
@@ -193,6 +199,7 @@ describe('Git Native Module', () => {
         it('should do nothing when repository and remote exist', async () => {
             mockExec
                 .mockResolvedValueOnce({ stdout: '.git', stderr: '' })
+                .mockResolvedValueOnce({ stdout: '', stderr: '' })
                 .mockResolvedValueOnce({
                     stdout: 'https://github.com/test/repo.git',
                     stderr: '',
@@ -205,11 +212,15 @@ describe('Git Native Module', () => {
                 expect.any(Object)
             );
             expect(mockExec).toHaveBeenCalledWith(
+                'git pull origin',
+                expect.any(Object)
+            );
+            expect(mockExec).toHaveBeenCalledWith(
                 'git remote get-url origin',
                 expect.any(Object)
             );
             expect(mockExec).not.toHaveBeenCalledWith(
-                'git init',
+                'git clone',
                 expect.any(Object)
             );
             expect(mockExec).not.toHaveBeenCalledWith(
@@ -276,6 +287,7 @@ describe('Git Native Module', () => {
         it('should push to remote repository', async () => {
             mockExec
                 .mockResolvedValueOnce({ stdout: '', stderr: '' }) // remote set-url
+                .mockResolvedValueOnce({ stdout: 'main', stderr: '' }) // branch detection
                 .mockResolvedValueOnce({ stdout: '', stderr: '' }); // push
 
             const config: GitConfig = {
@@ -292,6 +304,10 @@ describe('Git Native Module', () => {
                 expect.any(Object)
             );
             expect(mockExec).toHaveBeenCalledWith(
+                'git branch --show-current',
+                expect.any(Object)
+            );
+            expect(mockExec).toHaveBeenCalledWith(
                 'git push origin main',
                 expect.any(Object)
             );
@@ -300,6 +316,7 @@ describe('Git Native Module', () => {
         it('should handle git push errors', async () => {
             mockExec
                 .mockResolvedValueOnce({ stdout: '', stderr: '' }) // remote set-url
+                .mockResolvedValueOnce({ stdout: 'main', stderr: '' }) // branch detection
                 .mockRejectedValueOnce(new Error('Push failed')); // push
 
             const config: GitConfig = {

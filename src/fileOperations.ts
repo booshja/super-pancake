@@ -12,29 +12,47 @@ export async function modifyTextFile(
     newContent: string
 ): Promise<FileModificationResult> {
     try {
-        // Read existing content if file exists
+        // Ensure file path is in /tmp directory for Lambda compatibility
+        const lambdaFilePath = filePath.startsWith('/tmp/')
+            ? filePath
+            : `/tmp/${filePath}`;
+
+        // Read existing content if file exists, otherwise use template
         let oldContent = '';
         try {
-            oldContent = await fs.readFile(filePath, 'utf-8');
+            oldContent = await fs.readFile(lambdaFilePath, 'utf-8');
         } catch (error) {
-            // File doesn't exist, which is fine - we'll create it
-            console.log(`File ${filePath} doesn't exist, will create it`);
+            // File doesn't exist, try to copy from template
+            try {
+                const templatePath = '/var/task/daily-commit-template.txt';
+                oldContent = await fs.readFile(templatePath, 'utf-8');
+                console.log(`Using template file: ${templatePath}`);
+            } catch (templateError) {
+                // No template file, start with empty content
+                console.log(
+                    `File ${lambdaFilePath} doesn't exist and no template found, will create it`
+                );
+                oldContent = '';
+            }
         }
 
         // Write new content to file
-        await fs.writeFile(filePath, newContent, 'utf-8');
+        await fs.writeFile(lambdaFilePath, newContent, 'utf-8');
 
-        console.log(`Successfully modified file: ${filePath}`);
+        console.log(`Successfully modified file: ${lambdaFilePath}`);
 
         return {
             success: true,
-            message: `File ${filePath} modified successfully`,
-            filePath,
+            message: `File ${lambdaFilePath} modified successfully`,
+            filePath: lambdaFilePath,
             oldContent,
             newContent,
         };
     } catch (error) {
-        const errorMessage = `Failed to modify file ${filePath}: ${
+        const lambdaFilePath = filePath.startsWith('/tmp/')
+            ? filePath
+            : `/tmp/${filePath}`;
+        const errorMessage = `Failed to modify file ${lambdaFilePath}: ${
             error instanceof Error ? error.message : 'Unknown error'
         }`;
         console.error(errorMessage);
@@ -42,7 +60,7 @@ export async function modifyTextFile(
         return {
             success: false,
             message: errorMessage,
-            filePath,
+            filePath: lambdaFilePath,
         };
     }
 }

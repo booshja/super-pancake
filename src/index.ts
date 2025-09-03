@@ -4,7 +4,7 @@ import {
     Context,
 } from 'aws-lambda';
 import { modifyTextFile } from './fileOperations';
-import { performGitWorkflow } from './gitOperations';
+import { createCommitViaAPI } from './githubApi';
 import { validateLambdaEvent, checkRateLimit } from './validation';
 import {
     log,
@@ -188,10 +188,12 @@ export const handler = async (
             requestId,
         });
 
-        await performGitWorkflow(
+        // Create commit via GitHub API instead of Git commands
+        await createCommitViaAPI(
+            gitConfig,
             lambdaEvent.filePath!,
-            lambdaEvent.commitMessage!,
-            gitConfig
+            lambdaEvent.newContent!,
+            lambdaEvent.commitMessage!
         );
 
         metrics.gitOperationSuccess = true;

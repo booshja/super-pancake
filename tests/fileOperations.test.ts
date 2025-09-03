@@ -42,18 +42,21 @@ describe('File Operations Module', () => {
 
             const result = await modifyTextFile(filePath, newContent);
 
-            expect(mockReadFile).toHaveBeenCalledWith(filePath, 'utf-8');
+            expect(mockReadFile).toHaveBeenCalledWith(
+                `/tmp/${filePath}`,
+                'utf-8'
+            );
             expect(mockWriteFile).toHaveBeenCalledWith(
-                filePath,
+                `/tmp/${filePath}`,
                 newContent,
                 'utf-8'
             );
             expect(result).toEqual({
                 success: true,
-                message: `File ${filePath} modified successfully`,
+                message: `File /tmp/${filePath} modified successfully`,
                 oldContent: existingContent,
                 newContent: newContent,
-                filePath: filePath,
+                filePath: `/tmp/${filePath}`,
             });
         });
 
@@ -68,18 +71,21 @@ describe('File Operations Module', () => {
 
             const result = await modifyTextFile(filePath, newContent);
 
-            expect(mockReadFile).toHaveBeenCalledWith(filePath, 'utf-8');
+            expect(mockReadFile).toHaveBeenCalledWith(
+                `/tmp/${filePath}`,
+                'utf-8'
+            );
             expect(mockWriteFile).toHaveBeenCalledWith(
-                filePath,
+                `/tmp/${filePath}`,
                 newContent,
                 'utf-8'
             );
             expect(result).toEqual({
                 success: true,
-                message: `File ${filePath} modified successfully`,
+                message: `File /tmp/${filePath} modified successfully`,
                 oldContent: '',
                 newContent: newContent,
-                filePath: filePath,
+                filePath: `/tmp/${filePath}`,
             });
         });
 
@@ -95,8 +101,8 @@ describe('File Operations Module', () => {
 
             expect(result).toEqual({
                 success: false,
-                message: `Failed to modify file ${filePath}: Disk full`,
-                filePath: filePath,
+                message: `Failed to modify file /tmp/${filePath}: Disk full`,
+                filePath: `/tmp/${filePath}`,
             });
         });
 
@@ -109,7 +115,11 @@ describe('File Operations Module', () => {
 
             const result = await modifyTextFile(filePath, '');
 
-            expect(mockWriteFile).toHaveBeenCalledWith(filePath, '', 'utf-8');
+            expect(mockWriteFile).toHaveBeenCalledWith(
+                `/tmp/${filePath}`,
+                '',
+                'utf-8'
+            );
             expect(result.success).toBe(true);
             expect(result.newContent).toBe('');
         });
@@ -123,7 +133,11 @@ describe('File Operations Module', () => {
 
             const result = await modifyTextFile(filePath, null as any);
 
-            expect(mockWriteFile).toHaveBeenCalledWith(filePath, null, 'utf-8');
+            expect(mockWriteFile).toHaveBeenCalledWith(
+                `/tmp/${filePath}`,
+                null,
+                'utf-8'
+            );
             expect(result.success).toBe(true);
             expect(result.newContent).toBe(null);
         });
@@ -139,7 +153,7 @@ describe('File Operations Module', () => {
             const result = await modifyTextFile(filePath, largeContent);
 
             expect(mockWriteFile).toHaveBeenCalledWith(
-                filePath,
+                `/tmp/${filePath}`,
                 largeContent,
                 'utf-8'
             );
@@ -158,7 +172,7 @@ describe('File Operations Module', () => {
             const result = await modifyTextFile(filePath, specialContent);
 
             expect(mockWriteFile).toHaveBeenCalledWith(
-                filePath,
+                `/tmp/${filePath}`,
                 specialContent,
                 'utf-8'
             );
@@ -177,7 +191,7 @@ describe('File Operations Module', () => {
             const result = await modifyTextFile(filePath, unicodeContent);
 
             expect(mockWriteFile).toHaveBeenCalledWith(
-                filePath,
+                `/tmp/${filePath}`,
                 unicodeContent,
                 'utf-8'
             );

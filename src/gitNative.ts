@@ -13,7 +13,7 @@ const execAsync = promisify(exec);
  */
 export async function executeGitCommand(
     command: string,
-    cwd: string = process.cwd()
+    cwd: string = '/tmp'
 ): Promise<string> {
     try {
         const config = getConfig();
@@ -53,7 +53,7 @@ export async function configureGit(config: GitConfig): Promise<void> {
 }
 
 /**
- * Initializes a git repository if it doesn't exist
+ * Initializes a git repository by cloning or updating existing
  * @param repositoryUrl - Remote repository URL
  */
 export async function initializeRepository(
@@ -63,19 +63,29 @@ export async function initializeRepository(
         // Check if this is already a git repository
         try {
             await executeGitCommand('git rev-parse --git-dir');
-            console.log('Git repository already exists');
-        } catch {
-            console.log('Initializing new git repository...');
-            await executeGitCommand('git init');
+            console.log('Git repository already exists, updating...');
 
-            // Add remote origin
-            await executeGitCommand(`git remote add origin "${repositoryUrl}"`);
-            console.log('Git repository initialized and remote added');
+            // Pull latest changes
+            await executeGitCommand('git pull origin');
+            console.log('Repository updated with latest changes');
+        } catch {
+            console.log('Cloning repository...');
+            // Clone the repository instead of initializing empty one
+            await executeGitCommand(`git clone "${repositoryUrl}" .`);
+            console.log('Repository cloned successfully');
         }
 
-        // Check if remote origin exists, add if not
+        // Ensure remote origin is set correctly
         try {
-            await executeGitCommand('git remote get-url origin');
+            const currentUrl = await executeGitCommand(
+                'git remote get-url origin'
+            );
+            if (currentUrl.trim() !== repositoryUrl) {
+                await executeGitCommand(
+                    `git remote set-url origin "${repositoryUrl}"`
+                );
+                console.log('Remote origin URL updated');
+            }
         } catch {
             await executeGitCommand(`git remote add origin "${repositoryUrl}"`);
             console.log('Remote origin added');
@@ -131,9 +141,23 @@ export async function pushToRemote(config: GitConfig): Promise<void> {
         // Update remote URL with token
         await executeGitCommand(`git remote set-url origin "${remoteUrl}"`);
 
-        // Push to remote repository
-        await executeGitCommand('git push origin main');
-        console.log('Changes pushed to remote repository successfully');
+        // Get current branch name
+        let currentBranch: string;
+        try {
+            currentBranch = await executeGitCommand(
+                'git branch --show-current'
+            );
+            currentBranch = currentBranch.trim();
+        } catch {
+            // Fallback to main if branch detection fails
+            currentBranch = 'main';
+        }
+
+        // Push to remote repository with current branch
+        await executeGitCommand(`git push origin ${currentBranch}`);
+        console.log(
+            `Changes pushed to remote repository successfully on branch: ${currentBranch}`
+        );
     } catch (error) {
         console.error('Failed to push to remote repository:', error);
         throw error;

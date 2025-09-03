@@ -11,7 +11,7 @@
         "dev": "ts-node src/index.ts",
         "dev:optimized": "ts-node src/indexOptimized.ts",
         "package": "yarn build && zip -r lambda-deployment.zip dist/ node_modules/ package.json",
-        "package:optimized": "yarn build:optimized && zip -r lambda-deployment-optimized.zip dist/ node_modules/ package.json",
+        "package:optimized": "yarn build:optimized && cp dist/index.js index.js && zip -r lambda-deployment-optimized.zip index.js dist/ node_modules/ package.json daily-commit-template.txt && rm index.js",
         "test": "jest",
         "test:watch": "jest --watch",
         "test:coverage": "jest --coverage",
