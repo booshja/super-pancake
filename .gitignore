@@ -1,0 +1,7 @@
+node_modules/*
+dist/*
+examples/*
+env*
+.env
+lambda-deployment-optimized.zip
+coverage/*
